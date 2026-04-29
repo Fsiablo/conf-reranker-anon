@@ -1,0 +1,38 @@
+# Configuration used for the ORD-QA experiments
+# (Section VI-A, Table 2 of the paper).
+#
+# The ORD-QA dataset (see Pu et al., 2024;
+# https://github.com/lesliepy99/RAG-EDA) is *not* redistributed in
+# this repository. Please download it from the original source and
+# convert to the listwise JSONL format described in `data/README.md`.
+
+train_path: data/ord_qa/train.jsonl
+output_dir: runs/ord_qa_bge_v2_m3
+
+backbone_name: BAAI/bge-reranker-v2-m3
+n_negatives: 7
+max_length: 512
+
+batch_size: 4
+grad_accum_steps: 2
+lr: 2.0e-5
+weight_decay: 0.01
+warmup_ratio: 0.1
+num_epochs: 3
+fp16: true
+
+log_every: 50
+save_every: 500
+seed: 42
+
+loss:
+  lambda_c: 0.9
+  lambda_r: 0.2
+  eps: 1.0e-7
+
+inference:
+  T0: 0.8
+  beta: 2.0
+  rho: 0.2
+  eps: 1.0e-6
+  k_min: 1

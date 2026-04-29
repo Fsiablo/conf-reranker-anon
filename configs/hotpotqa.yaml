@@ -1,0 +1,36 @@
+# Configuration used for the HotpotQA experiments
+# (Section VI-A, Table 3 of the paper). HotpotQA is downloaded
+# via the official scripts (see https://hotpotqa.github.io/) and
+# converted to the listwise JSONL layout described in
+# `data/README.md`.
+
+train_path: data/hotpotqa/train.jsonl
+output_dir: runs/hotpotqa_bge_v2_m3
+
+backbone_name: BAAI/bge-reranker-v2-m3
+n_negatives: 7
+max_length: 512
+
+batch_size: 4
+grad_accum_steps: 2
+lr: 2.0e-5
+weight_decay: 0.01
+warmup_ratio: 0.1
+num_epochs: 2
+fp16: true
+
+log_every: 50
+save_every: 1000
+seed: 42
+
+loss:
+  lambda_c: 0.9
+  lambda_r: 0.2
+  eps: 1.0e-7
+
+inference:
+  T0: 0.8
+  beta: 2.0
+  rho: 0.2
+  eps: 1.0e-6
+  k_min: 1

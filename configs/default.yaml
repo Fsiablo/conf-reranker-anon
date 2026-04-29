@@ -1,0 +1,37 @@
+# Default training configuration for Conf-Reranker.
+#
+# Hyperparameters here mirror those reported in Section VI-A
+# (Training Setup) and Table 7 (Hyperparameter Sensitivity) of
+# the paper. Adjust ``train_path`` and ``output_dir`` for your
+# environment.
+
+train_path: data/train.jsonl
+output_dir: runs/default
+
+backbone_name: BAAI/bge-reranker-v2-m3
+n_negatives: 7
+max_length: 512
+
+batch_size: 4
+grad_accum_steps: 2
+lr: 2.0e-5
+weight_decay: 0.01
+warmup_ratio: 0.1
+num_epochs: 3
+fp16: true
+
+log_every: 50
+save_every: 1000
+seed: 42
+
+loss:
+  lambda_c: 0.9          # self-consistency weight (Section VI-D)
+  lambda_r: 0.2          # entropy regularizer weight
+  eps: 1.0e-7
+
+inference:               # Risk-Budgeted Top-k* (Section VI-A defaults)
+  T0: 0.8
+  beta: 2.0
+  rho: 0.2
+  eps: 1.0e-6
+  k_min: 1
