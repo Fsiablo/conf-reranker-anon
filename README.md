@@ -1,8 +1,8 @@
 <h1 align="center">Conf-Reranker</h1>
 
 <p align="center">
-  <b>Confidence-Aware Cross-Encoder Reranking for Trustworthy RAG</b><br>
-  <i>Joint ranking + calibration training with risk-budgeted Top-k* inference</i>
+  <b>Confidence-Propagating Reranking for Trustworthy RAG in EDA</b><br>
+  <i>Ranker--auditor training with risk-budgeted Top-k* context admission</i>
 </p>
 
 <p align="center">
@@ -17,17 +17,17 @@
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
   <img src="https://img.shields.io/badge/pytorch-2.0%2B-red.svg">
   <img src="https://img.shields.io/badge/license-MIT-green.svg">
-  <img src="https://img.shields.io/badge/status-research%20preview-orange.svg">
+  <img src="https://img.shields.io/badge/status-TCAD%20companion-blue.svg">
 </p>
 
 ---
 
-> ⚠️ **Status — Research Preview.** This repository accompanies the paper and
-> implements the core method (model architecture, loss, inference) exactly as
-> described. Large-scale training pipelines, pretrained checkpoints, and full
-> benchmark reproduction scripts are part of the planned release; see
-> [Release Roadmap](#release-roadmap) for what is currently included versus
-> planned.
+> **Status — Partial TCAD companion preview.** This repository accompanies the
+> journal manuscript but is intentionally **not** a complete runnable
+> reproduction package. It includes the core method skeleton, paper-facing
+> result tables, and stress-test protocol notes. Pretrained checkpoints, raw
+> third-party datasets, one-shot build scripts, generated artifacts, and judge
+> prompts are not redistributed.
 
 ---
 
@@ -61,7 +61,7 @@ downstream.
 <p align="center">
   <img src="docs/assets/architecture.png" width="80%"><br>
   <i>Figure 2 — Architecture detail. The score and confidence heads share the
-  encoder representation, adding &lt;0.05% parameter overhead.</i>
+  encoder representation, adding about 0.05% parameter overhead on BGE-v2-m3.</i>
 </p>
 
 ---
@@ -109,6 +109,28 @@ On BGE-reranker-v2-m3, single A6000 (FP16). Latency in ms/query.
 > Conf-Reranker matches Temperature Scaling on ECE while gaining **+1.45 / +1.25 nDCG@5**
 > on ORD-QA / HotpotQA, at essentially zero extra latency / memory.
 
+### Score-derived confidence and stop-gradient controls
+
+On BGE-reranker-v2-m3 / ORD-QA validation, the TCAD version adds controls for
+score-derived confidence, calibrated-score selection, stop-gradient removal, and
+inference-only confidence admission.
+
+| Variant | Confidence source | Stop-grad. | Weighted train. | Top-k* | nDCG@5 | Δ | ECE | Stale@5 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| Fine-tuned baseline | - | - | No | No | 78.41 | - | 0.120 | 6.8% |
+| Sigmoid-score control | sigmoid(score) | N/A | No | Yes | 78.46 | +0.05 | 0.118 | 6.6% |
+| Margin control | p1-p2 | N/A | No | Yes | 78.52 | +0.11 | 0.114 | 6.4% |
+| Calibrated-score selective | Platt / isotonic | N/A | No | Yes | 78.58 | +0.17 | 0.083 | 6.3% |
+| Conf head, no stop-gradient | Learned head | No | Yes | Yes | 77.92 | -0.49 | 0.094 | 5.9% |
+| Conf head, inference-only | Learned head | Yes | No | Yes | 78.74 | +0.33 | 0.071 | 5.7% |
+| Conf training, fixed top-5 | Learned head | Yes | Yes | No | 79.63 | +1.22 | 0.061 | 5.4% |
+| **Full Conf-Reranker** | Learned head | Yes | Yes | Yes | **79.86** | **+1.45** | **0.058** | **4.7%** |
+
+These controls show that the gain is not just a monotone score calibration:
+score-derived confidence improves ECE but leaves ranking and stale admission
+largely unchanged, while the learned stop-gradient auditor provides the main
+benefit.
+
 ### OOD generalization (zero-shot cross-dataset)
 
 <p align="center">
@@ -127,6 +149,32 @@ On BGE-reranker-v2-m3, single A6000 (FP16). Latency in ms/query.
   is systematically overconfident at high probabilities.</i>
 </p>
 
+### EDA-centric stress tests
+
+The journal version includes two EDA-specific stress tests built from public
+OpenROAD / ORD-QA artifacts. This repository documents the construction
+protocols under `data/`, but does not ship the full runnable benchmark pipeline.
+
+**Tool-version shift and stale-document admission**
+
+| Method | nDCG@5 | Stale@5 | False admission | Mean k |
+|---|---:|---:|---:|---:|
+| Fine-tuned reranker | 74.62 | 58.4% | 30.7% | 5.00 |
+| Temperature Scaling | 74.71 | 56.9% | 29.4% | 5.00 |
+| Deep Ensembles (M=5) | 75.83 | 50.2% | 24.6% | 5.00 |
+| **Conf-Reranker** | **79.18** | 28.7% | 14.3% | 3.86 |
+| **Conf-Reranker + conformal filter** | 79.05 | **21.4%** | **8.7%** | 3.52 |
+
+**End-to-end EDA RAG answer quality**
+
+| Context selector | Correct | Unsupported | Wrong command | Valid script |
+|---|---:|---:|---:|---:|
+| BM25 top-5 | 44.3% | 31.6% | 25.4% | 58.7% |
+| Fine-tuned reranker top-5 | 54.1% | 23.8% | 17.6% | 70.9% |
+| Temperature-scaled top-5 | 55.2% | 22.7% | 16.9% | 71.8% |
+| **Conf-Reranker Top-k*** | **61.7%** | 13.5% | 8.4% | 82.1% |
+| **Conf-Reranker + conformal filter** | 61.3% | **10.8%** | **6.1%** | **84.6%** |
+
 ### Case study: Noisy EDA candidate reranking
 
 <p align="center">
@@ -136,6 +184,9 @@ On BGE-reranker-v2-m3, single A6000 (FP16). Latency in ms/query.
   claims) are filtered by the ρ=0.2 confidence gate, preventing contaminated
   evidence from leaking into downstream generation.</i>
 </p>
+
+For complete tables, see [`docs/results.md`](docs/results.md) or the
+machine-readable file [`data/paper_results.json`](data/paper_results.json).
 
 ---
 
@@ -150,22 +201,29 @@ conf-reranker/
 │   ├── trainer.py          # Co-training loop skeleton
 │   └── data.py             # JSONL dataset + collator
 ├── scripts/
-│   ├── demo.py             # 60s CPU demo (try this first!)
-│   ├── run_train.py        # Training entry
-│   ├── run_eval.py         # Evaluation entry
-│   ├── train.sh            # Example launch script
+│   ├── demo.py                 # 60s CPU demo (try this first!)
+│   ├── run_train.py            # Training entry
+│   ├── run_eval.py             # Evaluation entry
+│   ├── print_paper_results.py  # Print data/paper_results.json as Markdown
+│   ├── train.sh                # Example launch script
 │   └── eval.sh
 ├── configs/
-│   ├── default.yaml        # Defaults (λ_c=0.9, λ_r=0.2, ρ=0.2, β=2)
-│   ├── ord_qa.yaml         # ORD-QA preset
-│   └── hotpotqa.yaml       # HotpotQA preset
+│   ├── default.yaml            # Defaults (λ_c=0.9, λ_r=0.2, ρ=0.2, β=2)
+│   ├── ord_qa.yaml             # ORD-QA preset
+│   ├── hotpotqa.yaml           # HotpotQA preset
+│   └── ablation_controls.yaml  # Score-derived confidence / stop-gradient controls
 ├── data/
-│   ├── README.md           # Data prep instructions
-│   └── sample/toy.jsonl    # 4-record toy dataset for demo
-├── tests/                  # Smoke tests
+│   ├── README.md               # Data prep instructions
+│   ├── EDA_STRESS_TESTS.md     # Tool-version and e2e RAG stress-test protocols
+│   ├── paper_results.json      # Machine-readable tables from the manuscript
+│   ├── exp1_version_shift/     # Version-shift protocol notes
+│   ├── exp2_e2e_rag/           # E2E query-pack protocol notes
+│   └── sample/toy.jsonl        # Toy dataset for tests/demo
+├── tests/                      # Smoke tests
 ├── docs/
-│   ├── method.md           # Method walk-through
-│   └── assets/             # Figures (shared with paper)
+│   ├── method.md               # Method walk-through
+│   ├── results.md              # Paper tables mirrored in Markdown
+│   └── assets/                 # Figures (shared with paper)
 ├── requirements.txt
 ├── setup.py
 ├── LICENSE                 # MIT
@@ -200,12 +258,12 @@ Expected output (truncated):
 ```
 Query: "Predict routing delay of critical path in 7nm FinFET..."
 Candidates after dual-head scoring:
-  d1   s=0.87  c=0.93   utility=0.752
-  d2   s=0.84  c=0.57   utility=0.273
-  d3   s=0.82  c=0.46   utility=0.174
-  d4   s=0.65  c=0.78   utility=0.395
+  d1   s=0.91  c=0.79   utility=0.431
+  d2   s=0.84  c=0.42   utility=0.119
+  d3   s=0.82  c=0.31   utility=0.067
+  d4   s=0.68  c=0.84   utility=0.308
 Risk-Budgeted Top-k* (ρ=0.2):
-  Selected: [d1, d4]   (k*=2, mean confidence=0.855 > ρ)
+  Selected: [d1, d4]   (k*=2, mean confidence=0.815 >= 1-ρ)
 ```
 
 ### Programmatic API
@@ -229,12 +287,28 @@ selected, utility, _, low_conf = risk_budgeted_topk(
 
 ### Reproducing the paper
 
-> ⏳ **Planned.** Pretrained checkpoints, ORD-QA / HotpotQA preprocessing, and
-> the full sweep over 4 backbones × 7 baselines are large enough to warrant a
-> separate release pass. The current repository releases the **method
-> implementation**; if you want to retrain from scratch on your own data,
-> `configs/default.yaml` already contains all hyperparameters reported in
-> Section VI of the paper.
+This public package is **not** intended to be a complete runnable reproduction
+of the paper. It provides three lightweight audit layers instead:
+
+1. **Core method skeleton.** `conf_reranker/`, `configs/default.yaml`, and the
+   training/evaluation entry points document the model, loss, Top-k* admission,
+   and conformal threshold utility.
+2. **Paper result tables.** `data/paper_results.json` stores the headline
+   result tables, including the confidence-control ablations added in the TCAD
+   version. Print them with:
+
+   ```bash
+   python -m scripts.print_paper_results --table confidence_controls
+   python -m scripts.print_paper_results --table version_shift
+   ```
+
+3. **EDA stress-test protocols.** `data/EDA_STRESS_TESTS.md` documents the
+   construction logic and expected artifact names, but the one-shot runner,
+   raw sources, generated artifacts, generator outputs, and judge prompts are
+   intentionally not included.
+
+Pretrained checkpoints and raw third-party datasets are not redistributed; see
+`data/README.md` for the expected JSONL layout.
 
 ---
 
@@ -242,13 +316,16 @@ selected, utility, _, low_conf = risk_budgeted_topk(
 
 | Milestone | Status |
 |---|---|
-| Core method (model / loss / inference) | ✅ Released |
+| Core method skeleton (model / loss / inference) | ✅ Released |
 | Demo & toy data | ✅ Released |
-| Documentation (method walk-through) | ✅ Released |
-| Pretrained checkpoints (BGE-v2-m3, DeBERTa-v3) | 🔜 Planned |
-| ORD-QA / HotpotQA reproduction scripts | 🔜 Planned |
-| Multi-backbone training sweep | 🔜 Planned |
-| Journal extension benchmarks | 🔜 Planned |
+| Documentation (method and result tables) | ✅ Released |
+| Machine-readable paper result tables | ✅ Released |
+| EDA stress-test protocol notes | ✅ Released |
+| Confidence-control ablation configuration | ✅ Released |
+| Pretrained checkpoints (BGE-v2-m3, DeBERTa-v3) | Not included |
+| Full ORD-QA / HotpotQA preprocessing pipeline | Not included |
+| One-shot EDA stress-test runner and generated artifacts | Not included |
+| Multi-backbone raw training logs | Not included |
 
 ---
 
@@ -258,6 +335,7 @@ selected, utility, _, low_conf = risk_budgeted_topk(
 |---|---|---|
 | ORD-QA | [Pu et al., 2024](https://github.com/lesliepy99/RAG-EDA) | EDA documentation QA (in-domain) |
 | HotpotQA (fullwiki) | [Yang et al., 2018](https://hotpotqa.github.io/) | Open-domain multi-hop QA (OOD) |
+| OpenROAD documentation snapshots | [OpenROAD](https://github.com/The-OpenROAD-Project/OpenROAD) | Tool-version shift and command-whitelist construction |
 
 We do **not** redistribute the datasets. Please follow each dataset's original
 license and download instructions; see [`data/README.md`](data/README.md) for the
@@ -281,8 +359,8 @@ If you use this code or method in your research, please cite our paper:
 
 ```bibtex
 @article{confreranker,
-  title   = {Confidence-Aware Cross-Encoder Reranking for Trustworthy
-             Retrieval-Augmented Generation},
+  title   = {Confidence-Propagating Reranking for Trustworthy
+             Retrieval-Augmented Generation in Electronic Design Automation},
   author  = {Anonymous Authors},
   journal = {IEEE Transactions on Computer-Aided Design of Integrated
              Circuits and Systems (TCAD)},

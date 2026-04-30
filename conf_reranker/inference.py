@@ -7,6 +7,8 @@ Given per-candidate (s_i, c_i) outputs, this module performs:
     3. Utility composition (Eq. 9):  u_i = p_i * c_i^beta.
     4. Risk-budgeted set selection (Eq. 10):
             k* = min { k : avg(c_(1..k)) >= 1 - rho }.
+       If no prefix satisfies the budget, return an empty set plus a
+       low-confidence flag so downstream code can abstain or escalate.
 """
 
 from __future__ import annotations
@@ -46,7 +48,7 @@ def risk_budgeted_topk(
         u            : Tensor (N,)   — full utility vector.
         c_sorted     : Tensor (N,)   — confidence aligned to utility order.
         flag_low_conf: bool          — True if no k satisfied the budget,
-                                       in which case the full set is returned
+                                       in which case ``selected_idx`` is empty
                                        and downstream code SHOULD escalate.
     """
     cfg = cfg or RiskBudgetConfig()
@@ -77,8 +79,8 @@ def risk_budgeted_topk(
     if valid.any():
         k_star = int(torch.nonzero(valid, as_tuple=False)[0].item()) + 1
         return order[:k_star], u, c_sorted, False
-    # no k satisfies budget → return full set + low-confidence flag
-    return order[:k_max], u, c_sorted, True
+    # no k satisfies budget → abstain with an explicit low-confidence flag
+    return order[:0], u, c_sorted, True
 
 
 class RiskBudgetedSelector:
@@ -117,25 +119,24 @@ def conformal_threshold(
     cal_correctness: Sequence[int],
     alpha: float = 0.1,
 ) -> float:
-    """Split-conformal calibration of the confidence threshold.
+    """Split-conformal threshold for irrelevant-candidate admission.
 
-    Companion to Theorem 2 (Section V-C). Given calibration set
-    confidences and binary correctness labels, returns the threshold
-    tau such that with probability >= 1 - alpha the held-out
-    expected precision exceeds the target.
-
-    This is intentionally a minimal placeholder and not the full
-    risk-control variant of the paper.
+    This implements the paper's finite-sample marginal safeguard:
+    compute the upper ``1 - alpha`` quantile of confidence scores assigned
+    to irrelevant calibration candidates (``cal_correctness == 0``). At
+    deployment, compose Top-k* with the filter ``c_i >= tau``. Under
+    exchangeability conditional on irrelevance, the marginal admission
+    probability for a fresh irrelevant candidate is bounded by
+    ``alpha + 1 / (M0 + 1)``.
     """
     import numpy as np
 
     c = np.asarray(cal_confidences, dtype=float)
     y = np.asarray(cal_correctness, dtype=int)
-    if c.size == 0:
-        return 0.0
-    # nonconformity score: 1 - c on correct, c on incorrect
-    scores = np.where(y == 1, 1.0 - c, c)
-    n = len(scores)
-    q_level = np.ceil((n + 1) * (1 - alpha)) / n
+    irrelevant = c[y == 0]
+    if irrelevant.size == 0:
+        return 1.0
+    m0 = irrelevant.size
+    q_level = np.ceil((m0 + 1) * (1.0 - alpha)) / m0
     q_level = float(np.clip(q_level, 0.0, 1.0))
-    return float(np.quantile(scores, q_level, method="higher"))
+    return float(np.quantile(irrelevant, q_level, method="higher"))

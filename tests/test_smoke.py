@@ -1,8 +1,7 @@
 """Smoke tests: import paths, loss math, selector logic.
 
 These tests do NOT load any HuggingFace model — they only check the
-non-encoder pieces. Heavyweight integration tests will be released
-alongside the journal extension.
+non-encoder pieces and paper-level selection utilities.
 """
 
 from __future__ import annotations
@@ -11,7 +10,7 @@ import math
 
 import torch
 
-from conf_reranker.inference import RiskBudgetConfig, risk_budgeted_topk
+from conf_reranker.inference import RiskBudgetConfig, conformal_threshold, risk_budgeted_topk
 from conf_reranker.loss import ConfRerankerLoss, LossConfig
 
 
@@ -47,12 +46,19 @@ def test_risk_budgeted_topk_basic() -> None:
 
 
 def test_risk_budgeted_topk_low_conf_flag() -> None:
-    # All low-confidence: no k satisfies budget → flag should fire.
+    # All low-confidence: no k satisfies budget → abstain with a flag.
     s = torch.tensor([1.0, 0.5, 0.0])
     c = torch.tensor([0.30, 0.25, 0.20])
     sel, _, _, flag = risk_budgeted_topk(s, c, RiskBudgetConfig(rho=0.1))
     assert flag is True
-    assert sel.numel() == 3  # falls back to full set
+    assert sel.numel() == 0
+
+
+def test_conformal_threshold_uses_irrelevant_upper_quantile() -> None:
+    conf = [0.10, 0.20, 0.40, 0.70, 0.90]
+    correct = [1, 0, 0, 1, 0]
+    tau = conformal_threshold(conf, correct, alpha=0.34)
+    assert math.isclose(tau, 0.90)
 
 
 def test_entropy_regularizer_sign() -> None:

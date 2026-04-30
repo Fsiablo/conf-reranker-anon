@@ -22,7 +22,7 @@ from transformers import AutoModel, AutoTokenizer
 class ConfRerankerConfig:
     backbone_name: str = "BAAI/bge-reranker-v2-m3"
     hidden_dropout: float = 0.1
-    head_hidden_ratio: float = 0.5  # head hidden dim = ratio * encoder dim
+    head_hidden_ratio: float = 0.25  # paper default: bottleneck hidden dim = d / 4
     pooling: str = "cls"  # "cls" | "mean"
 
 

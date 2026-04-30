@@ -2,8 +2,8 @@
 
 This is intentionally lean: a single-GPU PyTorch loop with mixed
 precision, AdamW, linear-warmup-then-decay schedule, and gradient
-accumulation. Distributed training, logging, and checkpoint averaging
-are part of the planned release (see top-level README).
+accumulation. It is a reference implementation for users' own data,
+not a complete reproduction pipeline for the paper benchmarks.
 """
 
 from __future__ import annotations

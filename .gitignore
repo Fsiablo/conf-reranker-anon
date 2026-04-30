@@ -60,3 +60,12 @@ htmlcov/
 .env.local
 *.pem
 *.key
+
+# ---- EDA stress-test raw sources / build artifacts ----
+data/sources/
+data/exp1_version_shift/command_inventory_*.json
+data/exp1_version_shift/stale_commands.json
+data/exp1_version_shift/passages_labeled.jsonl
+data/exp1_version_shift/version_shift_test.jsonl
+data/exp2_e2e_rag/command_whitelist.json
+data/exp2_e2e_rag/packs/

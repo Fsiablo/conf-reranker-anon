@@ -1,12 +1,12 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the accompanying paper."
-title: "Conf-Reranker: Reliability-Aware Reranking for EDA-Oriented RAG"
+title: "Confidence-Propagating Reranking for Trustworthy Retrieval-Augmented Generation in Electronic Design Automation"
 authors:
   - name: "Anonymous Authors"
 year: 2026
 preferred-citation:
   type: article
-  title: "Conf-Reranker: Reliability-Aware Reranking for EDA-Oriented Retrieval-Augmented Generation"
+  title: "Confidence-Propagating Reranking for Trustworthy Retrieval-Augmented Generation in Electronic Design Automation"
   authors:
     - name: "Anonymous Authors"
   journal: "IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"

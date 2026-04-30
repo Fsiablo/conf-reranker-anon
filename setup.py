@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 setup(
     name="conf-reranker",
     version="0.1.0",
-    description="Confidence-propagating cross-encoder reranking for EDA RAG.",
+    description="Confidence-propagating cross-encoder reranking for trustworthy EDA RAG.",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     author="Anonymous Authors",

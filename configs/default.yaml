@@ -1,9 +1,8 @@
 # Default training configuration for Conf-Reranker.
 #
-# Hyperparameters here mirror those reported in Section VI-A
-# (Training Setup) and Table 7 (Hyperparameter Sensitivity) of
-# the paper. Adjust ``train_path`` and ``output_dir`` for your
-# environment.
+# Hyperparameters here mirror the Section VI-A training setup and
+# hyperparameter-sensitivity defaults in the TCAD manuscript. Adjust
+# ``train_path`` and ``output_dir`` for your environment.
 
 train_path: data/train.jsonl
 output_dir: runs/default
@@ -25,7 +24,7 @@ save_every: 1000
 seed: 42
 
 loss:
-  lambda_c: 0.9          # self-consistency weight (Section VI-D)
+  lambda_c: 0.9          # self-consistency weight
   lambda_r: 0.2          # entropy regularizer weight
   eps: 1.0e-7
 

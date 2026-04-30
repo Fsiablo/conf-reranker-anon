@@ -1,0 +1,65 @@
+# Targeted controls reported in the TCAD journal version.
+# These settings document how Table "Score-Derived Confidence and
+# Stop-Gradient Controls" is produced on BGE-reranker-v2-m3 / ORD-QA.
+
+backbone_name: BAAI/bge-reranker-v2-m3
+dataset: ORD-QA
+split: validation
+num_queries: 400
+seeds: [0, 1, 2]
+
+defaults:
+  rho: 0.2
+  beta: 2.0
+  T0: 0.8
+  lambda_c: 0.9
+  lambda_r: 0.2
+
+controls:
+  - name: fine_tuned_baseline
+    confidence_source: null
+    stop_gradient: null
+    weighted_training: false
+    top_k_star: false
+
+  - name: sigmoid_score_control
+    confidence_source: sigmoid_score
+    stop_gradient: null
+    weighted_training: false
+    top_k_star: true
+
+  - name: margin_control
+    confidence_source: softmax_top1_minus_top2_margin
+    stop_gradient: null
+    weighted_training: false
+    top_k_star: true
+
+  - name: calibrated_score_selective
+    confidence_source: best_of_platt_or_isotonic_on_heldout
+    stop_gradient: null
+    weighted_training: false
+    top_k_star: true
+
+  - name: conf_head_no_stop_gradient
+    confidence_source: learned_head
+    stop_gradient: false
+    weighted_training: true
+    top_k_star: true
+
+  - name: conf_head_inference_only
+    confidence_source: learned_head
+    stop_gradient: true
+    weighted_training: false
+    top_k_star: true
+
+  - name: conf_training_fixed_top5
+    confidence_source: learned_head
+    stop_gradient: true
+    weighted_training: true
+    top_k_star: false
+
+  - name: full_conf_reranker
+    confidence_source: learned_head
+    stop_gradient: true
+    weighted_training: true
+    top_k_star: true

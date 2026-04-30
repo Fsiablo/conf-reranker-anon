@@ -2,8 +2,8 @@
 
 Reference paper:
     Anonymous Authors.
-    "Conf-Reranker: Reliability-Aware Reranking for EDA-Oriented
-    Retrieval-Augmented Generation."
+    "Confidence-Propagating Reranking for Trustworthy
+    Retrieval-Augmented Generation in Electronic Design Automation."
     IEEE Transactions on Computer-Aided Design of Integrated Circuits
     and Systems (TCAD).
 """
@@ -12,7 +12,7 @@ from .model import ConfReranker
 from .loss import ConfRerankerLoss
 from .inference import risk_budgeted_topk, RiskBudgetedSelector
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "ConfReranker",
     "ConfRerankerLoss",

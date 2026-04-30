@@ -13,8 +13,11 @@ data/
 ├── hotpotqa/
 │   ├── train.jsonl
 │   └── dev.jsonl
+├── paper_results.json       # machine-readable tables from the TCAD manuscript
+├── exp1_version_shift/      # tool-version shift protocol notes
+├── exp2_e2e_rag/            # end-to-end EDA RAG protocol notes
 └── sample/
-    └── toy.jsonl    # 16 examples, shipped with the repo for unit tests
+    └── toy.jsonl            # toy examples shipped with the repo for unit tests
 ```
 
 ## File format (listwise JSONL)
@@ -46,6 +49,18 @@ and HotpotQA paragraph-pair preprocessing.
 
 ## Conversion scripts
 
-Conversion scripts (`prep_ord_qa.py`, `prep_hotpotqa.py`) and
-hard-negative mining utilities are part of the planned release
-(see Release Roadmap in the top-level `README.md`).
+This repository expects ORD-QA / HotpotQA data that has already been converted
+to the listwise format above. Dataset-specific preprocessing is not bundled
+because the raw datasets follow their original release formats and licenses.
+
+## Paper result tables
+
+`paper_results.json` mirrors the current TCAD manuscript tables, including the newly added confidence-control ablations, selection diagnostics, tool-version shift results, and end-to-end EDA RAG answer-quality results. Use:
+
+```bash
+python -m scripts.print_paper_results --table confidence_controls
+```
+
+## EDA-centric stress-test protocols
+
+Protocol notes for the TCAD paper stress tests are under `data/exp1_version_shift/` and `data/exp2_e2e_rag/`. See `data/EDA_STRESS_TESTS.md`. The public companion repository intentionally does not include a one-shot runner, raw third-party sources, generated artifacts, generator outputs, or judge prompts.
